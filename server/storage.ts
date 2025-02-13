@@ -1,10 +1,10 @@
 import {
-  words, wordGroups, studySessions, studyActivities, wordReviewItems,
-  type Word, type WordGroup, type StudySession, type StudyActivity, type WordReviewItem,
-  type InsertWord, type InsertWordGroup, type InsertStudySession, type InsertWordReview
+  words, wordGroups, wordsToGroups, studySessions, studyActivities, wordReviewItems,
+  type Word, type WordGroup, type WordsToGroups, type StudySession, type StudyActivity, type WordReviewItem,
+  type InsertWord, type InsertWordGroup, type InsertWordsToGroups, type InsertStudySession, type InsertWordReview
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Words
@@ -12,6 +12,7 @@ export interface IStorage {
   getWords(): Promise<Word[]>;
   createWord(word: InsertWord): Promise<Word>;
   getGroupWords(groupId: number): Promise<Word[]>;
+  addWordToGroup(data: InsertWordsToGroups): Promise<WordsToGroups>;
 
   // Groups
   getGroup(id: number): Promise<WordGroup | undefined>;
@@ -48,6 +49,28 @@ export class DatabaseStorage implements IStorage {
   async createWord(word: InsertWord): Promise<Word> {
     const [newWord] = await db.insert(words).values(word).returning();
     return newWord;
+  }
+
+  async getGroupWords(groupId: number): Promise<Word[]> {
+    // Get words that belong to the specified group using the words_to_groups table
+    const result = await db
+      .select({
+        id: words.id,
+        dariWord: words.dariWord,
+        englishTranslation: words.englishTranslation,
+        pronunciation: words.pronunciation,
+        exampleSentence: words.exampleSentence,
+      })
+      .from(words)
+      .innerJoin(wordsToGroups, eq(words.id, wordsToGroups.wordId))
+      .where(eq(wordsToGroups.groupId, groupId));
+
+    return result;
+  }
+
+  async addWordToGroup(data: InsertWordsToGroups): Promise<WordsToGroups> {
+    const [relation] = await db.insert(wordsToGroups).values(data).returning();
+    return relation;
   }
 
   async getGroup(id: number): Promise<WordGroup | undefined> {
@@ -108,13 +131,9 @@ export class DatabaseStorage implements IStorage {
 
   async resetAll(): Promise<void> {
     await this.resetHistory();
+    await db.delete(wordsToGroups);
     await db.delete(words);
     await db.delete(wordGroups);
-  }
-  async getGroupWords(groupId: number): Promise<Word[]> {
-    // For now, return all words since we don't have a words_to_groups table yet
-    // This will need to be updated once we implement word-group relationships
-    return this.getWords();
   }
 }
 

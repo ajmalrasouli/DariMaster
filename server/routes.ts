@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWordSchema, insertWordGroupSchema, insertStudySessionSchema, insertWordReviewSchema } from "@shared/schema";
+import { insertWordSchema, insertWordGroupSchema, insertStudySessionSchema, insertWordReviewSchema, insertWordsToGroupsSchema } from "@shared/schema";
 
 export function registerRoutes(app: Express): Server {
   // Words
@@ -42,10 +42,20 @@ export function registerRoutes(app: Express): Server {
     res.json(group);
   });
 
-  // Add this endpoint to get words for a group
+  // Words in Groups
   app.get("/api/groups/:id/words", async (req, res) => {
     const words = await storage.getGroupWords(parseInt(req.params.id));
     res.json(words);
+  });
+
+  app.post("/api/groups/:groupId/words/:wordId", async (req, res) => {
+    const parsed = insertWordsToGroupsSchema.safeParse({
+      groupId: parseInt(req.params.groupId),
+      wordId: parseInt(req.params.wordId)
+    });
+    if (!parsed.success) return res.status(400).json(parsed.error);
+    const relation = await storage.addWordToGroup(parsed.data);
+    res.json(relation);
   });
 
   // Study Sessions
@@ -67,7 +77,7 @@ export function registerRoutes(app: Express): Server {
     res.json(session);
   });
 
-  // Add this endpoint to get words with their reviews for a study session
+  // Study Session Words
   app.get("/api/study_sessions/:id/words", async (req, res) => {
     const sessionId = parseInt(req.params.id);
     const session = await storage.getStudySession(sessionId);
@@ -89,7 +99,6 @@ export function registerRoutes(app: Express): Server {
 
     res.json(wordsWithReviews);
   });
-
 
   // Word Reviews
   app.post("/api/study_sessions/:id/words/:wordId/review", async (req, res) => {
