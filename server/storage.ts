@@ -11,6 +11,7 @@ export interface IStorage {
   getWord(id: number): Promise<Word | undefined>;
   getWords(): Promise<Word[]>;
   createWord(word: InsertWord): Promise<Word>;
+  getGroupWords(groupId: number): Promise<Word[]>;
 
   // Groups
   getGroup(id: number): Promise<WordGroup | undefined>;
@@ -109,6 +110,11 @@ export class DatabaseStorage implements IStorage {
     await this.resetHistory();
     await db.delete(words);
     await db.delete(wordGroups);
+  }
+  async getGroupWords(groupId: number): Promise<Word[]> {
+    // For now, return all words since we don't have a words_to_groups table yet
+    // This will need to be updated once we implement word-group relationships
+    return this.getWords();
   }
 }
 

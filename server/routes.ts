@@ -42,6 +42,12 @@ export function registerRoutes(app: Express): Server {
     res.json(group);
   });
 
+  // Add this endpoint to get words for a group
+  app.get("/api/groups/:id/words", async (req, res) => {
+    const words = await storage.getGroupWords(parseInt(req.params.id));
+    res.json(words);
+  });
+
   // Study Sessions
   app.get("/api/study_sessions", async (_req, res) => {
     const sessions = await storage.getStudySessions();
@@ -61,6 +67,30 @@ export function registerRoutes(app: Express): Server {
     res.json(session);
   });
 
+  // Add this endpoint to get words with their reviews for a study session
+  app.get("/api/study_sessions/:id/words", async (req, res) => {
+    const sessionId = parseInt(req.params.id);
+    const session = await storage.getStudySession(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    // Get words for the group and merge with any existing reviews
+    const groupWords = await storage.getGroupWords(session.groupId!);
+    const reviews = await storage.getWordReviews(sessionId);
+
+    const wordsWithReviews = groupWords.map(word => {
+      const review = reviews.find(r => r.wordId === word.id);
+      return {
+        ...word,
+        review: review || null
+      };
+    });
+
+    res.json(wordsWithReviews);
+  });
+
+
   // Word Reviews
   app.post("/api/study_sessions/:id/words/:wordId/review", async (req, res) => {
     const parsed = insertWordReviewSchema.safeParse({
@@ -71,11 +101,6 @@ export function registerRoutes(app: Express): Server {
     if (!parsed.success) return res.status(400).json(parsed.error);
     const review = await storage.createWordReview(parsed.data);
     res.json(review);
-  });
-
-  app.get("/api/study_sessions/:id/words", async (req, res) => {
-    const reviews = await storage.getWordReviews(parseInt(req.params.id));
-    res.json(reviews);
   });
 
   // Stats
