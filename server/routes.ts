@@ -84,6 +84,102 @@ export function registerRoutes(app: Express): Server {
     res.json(stats);
   });
 
+  // Add new dashboard routes
+  app.get("/api/dashboard/last_study_session", async (_req, res) => {
+    const sessions = await storage.getStudySessions();
+    if (sessions.length === 0) {
+      return res.json(null);
+    }
+
+    const lastSession = sessions[sessions.length - 1];
+    const group = await storage.getGroup(lastSession.groupId!);
+    const reviews = await storage.getWordReviews(lastSession.id);
+
+    res.json({
+      groupName: group?.name,
+      date: lastSession.createdAt,
+      correct: reviews.filter(r => r.correct).length,
+      total: reviews.length
+    });
+  });
+
+  app.get("/api/dashboard/study_progress", async (_req, res) => {
+    const words = await storage.getWords();
+    const reviews = await Promise.all(
+      words.map(word => storage.getWordStats(word.id))
+    );
+
+    const totalWords = words.length;
+    const totalStudied = reviews.filter(stats =>
+      stats.correct + stats.incorrect > 0
+    ).length;
+
+    const totalReviews = reviews.reduce(
+      (sum, stats) => sum + stats.correct + stats.incorrect,
+      0
+    );
+    const correctReviews = reviews.reduce(
+      (sum, stats) => sum + stats.correct,
+      0
+    );
+
+    const mastery = totalReviews > 0
+      ? Math.round((correctReviews / totalReviews) * 100)
+      : 0;
+
+    res.json({
+      totalWords,
+      totalStudied,
+      mastery
+    });
+  });
+
+  app.get("/api/dashboard/quick-stats", async (_req, res) => {
+    const sessions = await storage.getStudySessions();
+    const groups = await storage.getGroups();
+
+    // Calculate success rate across all reviews
+    let totalCorrect = 0;
+    let totalReviews = 0;
+
+    for (const session of sessions) {
+      const reviews = await storage.getWordReviews(session.id);
+      totalCorrect += reviews.filter(r => r.correct).length;
+      totalReviews += reviews.length;
+    }
+
+    const successRate = totalReviews > 0
+      ? Math.round((totalCorrect / totalReviews) * 100)
+      : 0;
+
+    // Calculate study streak (consecutive days with sessions)
+    const sessionDates = sessions
+      .map(s => new Date(s.createdAt!).toDateString())
+      .sort()
+      .filter((date, i, arr) => arr.indexOf(date) === i);
+
+    let streak = 0;
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+    if (sessionDates.includes(today) || sessionDates.includes(yesterday)) {
+      streak = 1;
+      let checkDate = new Date(Date.now() - 86400000);
+
+      while (sessionDates.includes(checkDate.toDateString())) {
+        streak++;
+        checkDate = new Date(checkDate.getTime() - 86400000);
+      }
+    }
+
+    res.json({
+      successRate,
+      totalSessions: sessions.length,
+      activeGroups: groups.length,
+      streak
+    });
+  });
+
   // Reset
   app.post("/api/reset_history", async (_req, res) => {
     await storage.resetHistory();

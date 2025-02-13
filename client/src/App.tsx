@@ -9,6 +9,7 @@ import WordShow from "@/pages/words/[id]";
 import GroupsIndex from "@/pages/groups/index";
 import GroupShow from "@/pages/groups/[id]";
 import StudySessionsIndex from "@/pages/study-sessions/index";
+import CreateStudySession from "@/pages/study-sessions/create";
 import StudySessionShow from "@/pages/study-sessions/[id]";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -25,6 +26,7 @@ function Router() {
           <Route path="/words/:id" component={WordShow} />
           <Route path="/groups" component={GroupsIndex} />
           <Route path="/groups/:id" component={GroupShow} />
+          <Route path="/study-sessions/create" component={CreateStudySession} />
           <Route path="/study-sessions" component={StudySessionsIndex} />
           <Route path="/study-sessions/:id" component={StudySessionShow} />
           <Route path="/settings" component={Settings} />

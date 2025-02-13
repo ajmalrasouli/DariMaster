@@ -3,24 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { 
-  BookOpen, 
-  CheckCircle, 
-  Clock, 
+import {
+  BookOpen,
+  CheckCircle,
+  Clock,
   Users,
   ArrowRight
 } from "lucide-react";
 
+interface LastStudySession {
+  groupName: string;
+  date: string;
+  correct: number;
+  total: number;
+}
+
+interface StudyProgress {
+  totalWords: number;
+  totalStudied: number;
+  mastery: number;
+}
+
+interface QuickStats {
+  successRate: number;
+  totalSessions: number;
+  activeGroups: number;
+  streak: number;
+}
+
 export default function Dashboard() {
-  const { data: lastSession } = useQuery({
+  const { data: lastSession } = useQuery<LastStudySession>({
     queryKey: ["/api/dashboard/last_study_session"]
   });
 
-  const { data: progress } = useQuery({
+  const { data: progress } = useQuery<StudyProgress>({
     queryKey: ["/api/dashboard/study_progress"]
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<QuickStats>({
     queryKey: ["/api/dashboard/quick-stats"]
   });
 
@@ -28,7 +48,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Link href="/study-sessions">
+        <Link href="/study-sessions/create">
           <Button>
             Start Studying
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -43,7 +63,7 @@ export default function Dashboard() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.successRate}%</div>
+            <div className="text-2xl font-bold">{stats?.successRate ?? 0}%</div>
           </CardContent>
         </Card>
 
@@ -53,7 +73,7 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalSessions}</div>
+            <div className="text-2xl font-bold">{stats?.totalSessions ?? 0}</div>
           </CardContent>
         </Card>
 
@@ -63,7 +83,7 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeGroups}</div>
+            <div className="text-2xl font-bold">{stats?.activeGroups ?? 0}</div>
           </CardContent>
         </Card>
 
@@ -73,7 +93,7 @@ export default function Dashboard() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.streak} days</div>
+            <div className="text-2xl font-bold">{stats?.streak ?? 0} days</div>
           </CardContent>
         </Card>
       </div>
@@ -84,9 +104,9 @@ export default function Dashboard() {
             <CardTitle>Study Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={progress?.mastery || 0} className="mb-2" />
+            <Progress value={progress?.mastery ?? 0} className="mb-2" />
             <div className="text-sm text-muted-foreground">
-              {progress?.totalStudied} of {progress?.totalWords} words studied
+              {progress?.totalStudied ?? 0} of {progress?.totalWords ?? 0} words studied
             </div>
           </CardContent>
         </Card>
