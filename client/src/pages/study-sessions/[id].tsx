@@ -34,7 +34,8 @@ export default function StudySessionShow() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ wordId, correct }: { wordId: number; correct: boolean }) => {
-      await apiRequest("POST", `/api/study_sessions/${id}/words/${wordId}/review`, { correct });
+      const response = await apiRequest("POST", `/api/study_sessions/${id}/words/${wordId}/review`, { correct });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/study_sessions/${id}/words`] });
@@ -131,6 +132,7 @@ export default function StudySessionShow() {
                             onClick={() =>
                               reviewMutation.mutate({ wordId: word.id, correct: true })
                             }
+                            disabled={reviewMutation.isPending}
                           >
                             Correct
                           </Button>
@@ -141,6 +143,7 @@ export default function StudySessionShow() {
                             onClick={() =>
                               reviewMutation.mutate({ wordId: word.id, correct: false })
                             }
+                            disabled={reviewMutation.isPending}
                           >
                             Incorrect
                           </Button>
