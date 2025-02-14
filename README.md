@@ -34,12 +34,90 @@ DariMaster is a web application designed to help users learn and practice Dari v
 ### Installation
 
 1. Clone the repository:
-
-bash
-git clone https://github.com/yourusername/darimaster.git
-cd darimaster
+```bash
+git clone https://github.com/ajmalrasouli/darimasterlan.git
+cd darimasterlan
+```
 
 2. Install dependencies:
 
 bash
 npm install
+
+
+3. Set up the database:
+
+bash
+npm run db:setup
+
+
+4. Start the development server:
+
+bash
+npm run dev
+
+
+
+The app will be available at `http://localhost:5173`
+
+## Project Structure
+
+
+
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the production version
+- `npm run db:setup` - Initialize and seed the database
+- `npm run db:check` - Check database contents
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
+
+## Database Schema
+
+- `words` - Stores vocabulary words with translations and examples
+- `word_groups` - Categories for organizing words
+- `words_to_groups` - Maps words to their groups
+- `study_sessions` - Tracks study sessions
+- `word_review_items` - Records word review results
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the production version
+- `npm run db:setup` - Initialize and seed the database
+- `npm run db:check` - Check database contents
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
+
+## Database Schema
+
+- `words` - Stores vocabulary words with translations and examples
+- `word_groups` - Categories for organizing words
+- `words_to_groups` - Maps words to their groups
+- `study_sessions` - Tracks study sessions
+- `word_review_items` - Records word review results
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
