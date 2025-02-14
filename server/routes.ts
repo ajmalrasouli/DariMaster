@@ -2,37 +2,98 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertWordSchema, insertWordGroupSchema, insertStudySessionSchema, insertWordReviewSchema, insertWordsToGroupsSchema } from "@shared/schema";
+import { db } from "./db";
 
 export function registerRoutes(app: Express): Server {
   // Words
-  app.get("/api/words", async (_req, res) => {
-    const words = await storage.getWords();
-    res.json(words);
+  app.get("/api/words", (_req, res) => {
+    try {
+      const words = db.prepare(`
+        SELECT 
+          w.*,
+          COALESCE(r.correct_count, 0) as correct,
+          COALESCE(r.incorrect_count, 0) as wrong
+        FROM words w
+        LEFT JOIN (
+          SELECT 
+            word_id,
+            SUM(CASE WHEN correct = 1 THEN 1 ELSE 0 END) as correct_count,
+            SUM(CASE WHEN correct = 0 THEN 1 ELSE 0 END) as incorrect_count
+          FROM word_review_items
+          GROUP BY word_id
+        ) r ON w.id = r.word_id
+      `).all();
+      
+      res.json(words);
+    } catch (error) {
+      console.error('Error fetching words:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
-  app.get("/api/words/:id", async (req, res) => {
-    const word = await storage.getWord(parseInt(req.params.id));
-    if (!word) return res.status(404).json({ message: "Word not found" });
-    res.json(word);
+  app.get("/api/words/:id", (req, res) => {
+    try {
+      const word = db.prepare('SELECT * FROM words WHERE id = ?').get(req.params.id);
+      if (!word) {
+        return res.status(404).json({ error: 'Word not found' });
+      }
+      res.json(word);
+    } catch (error) {
+      console.error('Error fetching word:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
-  app.post("/api/words", async (req, res) => {
-    const parsed = insertWordSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json(parsed.error);
-    const word = await storage.createWord(parsed.data);
-    res.json(word);
+  app.post("/api/words", (req, res) => {
+    try {
+      const { dariWord, englishTranslation, pronunciation, exampleSentence } = req.body;
+      const result = db.prepare(`
+        INSERT INTO words (dari_word, english_translation, pronunciation, example_sentence)
+        VALUES (?, ?, ?, ?)
+      `).run(dariWord, englishTranslation, pronunciation, exampleSentence);
+      
+      res.status(201).json({
+        id: result.lastInsertRowid,
+        dariWord,
+        englishTranslation,
+        pronunciation,
+        exampleSentence
+      });
+    } catch (error) {
+      console.error('Error creating word:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // Groups
-  app.get("/api/groups", async (_req, res) => {
-    const groups = await storage.getGroups();
-    res.json(groups);
+  app.get("/api/groups", (_req, res) => {
+    try {
+      const groups = db.prepare(`
+        SELECT 
+          wg.*,
+          COUNT(wtg.word_id) as word_count
+        FROM word_groups wg
+        LEFT JOIN words_to_groups wtg ON wg.id = wtg.group_id
+        GROUP BY wg.id
+      `).all();
+      res.json(groups);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
-  app.get("/api/groups/:id", async (req, res) => {
-    const group = await storage.getGroup(parseInt(req.params.id));
-    if (!group) return res.status(404).json({ message: "Group not found" });
-    res.json(group);
+  app.get("/api/groups/:id", (req, res) => {
+    try {
+      const group = db.prepare('SELECT * FROM word_groups WHERE id = ?').get(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: 'Group not found' });
+      }
+      res.json(group);
+    } catch (error) {
+      console.error('Error fetching group:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.post("/api/groups", async (req, res) => {
@@ -43,15 +104,25 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Words in Groups
-  app.get("/api/groups/:id/words", async (req, res) => {
-    const words = await storage.getGroupWords(parseInt(req.params.id));
-    res.json(words);
+  app.get("/api/groups/:id/words", (req, res) => {
+    try {
+      const words = db.prepare(`
+        SELECT w.* 
+        FROM words w
+        JOIN words_to_groups wtg ON w.id = wtg.word_id
+        WHERE wtg.group_id = ?
+      `).all(req.params.id);
+      res.json(words);
+    } catch (error) {
+      console.error('Error fetching group words:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.post("/api/groups/:groupId/words/:wordId", async (req, res) => {
     const parsed = insertWordsToGroupsSchema.safeParse({
-      groupId: parseInt(req.params.groupId),
-      wordId: parseInt(req.params.wordId)
+      group_id: parseInt(req.params.groupId),
+      word_id: parseInt(req.params.wordId)
     });
     if (!parsed.success) return res.status(400).json(parsed.error);
     const relation = await storage.addWordToGroup(parsed.data);
@@ -71,10 +142,26 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/study_sessions", async (req, res) => {
-    const parsed = insertStudySessionSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json(parsed.error);
-    const session = await storage.createStudySession(parsed.data);
-    res.json(session);
+    console.log('Received study session request:', req.body);
+    
+    // Transform groupId to group_id
+    const requestData = {
+      group_id: req.body.groupId ? Number(req.body.groupId) : null
+    };
+    
+    const parsed = insertStudySessionSchema.safeParse(requestData);
+    if (!parsed.success) {
+      console.log('Validation error:', parsed.error);
+      return res.status(400).json(parsed.error);
+    }
+    
+    try {
+      const session = await storage.createStudySession(parsed.data);
+      res.json(session);
+    } catch (error) {
+      console.error('Error creating study session:', error);
+      res.status(500).json({ message: 'Failed to create study session' });
+    }
   });
 
   // Study Session Words
@@ -85,12 +172,11 @@ export function registerRoutes(app: Express): Server {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    // Get words for the group and merge with any existing reviews
-    const groupWords = await storage.getGroupWords(session.groupId!);
+    const groupWords = await storage.getGroupWords(session.group_id!);
     const reviews = await storage.getWordReviews(sessionId);
 
     const wordsWithReviews = groupWords.map(word => {
-      const review = reviews.find(r => r.wordId === word.id);
+      const review = reviews.find(r => r.word_id === word.id);
       return {
         ...word,
         review: review || null
@@ -104,8 +190,8 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/study_sessions/:id/words/:wordId/review", async (req, res) => {
     const parsed = insertWordReviewSchema.safeParse({
       ...req.body,
-      wordId: parseInt(req.params.wordId),
-      studySessionId: parseInt(req.params.id)
+      word_id: parseInt(req.params.wordId),
+      study_session_id: parseInt(req.params.id)
     });
     if (!parsed.success) return res.status(400).json(parsed.error);
     const review = await storage.createWordReview(parsed.data);
@@ -126,12 +212,12 @@ export function registerRoutes(app: Express): Server {
     }
 
     const lastSession = sessions[sessions.length - 1];
-    const group = await storage.getGroup(lastSession.groupId!);
+    const group = await storage.getGroup(lastSession.group_id!);
     const reviews = await storage.getWordReviews(lastSession.id);
 
     res.json({
       groupName: group?.name,
-      date: lastSession.createdAt,
+      date: lastSession.created_at,
       correct: reviews.filter(r => r.correct).length,
       total: reviews.length
     });
@@ -188,7 +274,7 @@ export function registerRoutes(app: Express): Server {
 
     // Calculate study streak (consecutive days with sessions)
     const sessionDates = sessions
-      .map(s => new Date(s.createdAt!).toDateString())
+      .map(s => new Date(s.created_at!).toDateString())
       .sort()
       .filter((date, i, arr) => arr.indexOf(date) === i);
 
@@ -223,6 +309,14 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/full_reset", async (_req, res) => {
     await storage.resetAll();
     res.json({ message: "Full reset completed successfully" });
+  });
+
+  // Add this new route
+  app.get("/api/groups/:id/study_sessions", async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    const sessions = await storage.getStudySessions();
+    const groupSessions = sessions.filter(s => s.group_id === groupId);
+    res.json(groupSessions);
   });
 
   const httpServer = createServer(app);

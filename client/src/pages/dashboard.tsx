@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
   CheckCircle,
@@ -45,72 +45,75 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Link href="/study-sessions/create">
-          <Button>
-            Start Studying
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Link href="/study">
+          <Button>Start Studying</Button>
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Success Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.successRate ?? 0}%</div>
+            <p className="text-2xl font-bold">{stats?.successRate || 0}%</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Study Sessions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalSessions ?? 0}</div>
+            <p className="text-2xl font-bold">{stats?.totalSessions || 0}</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Groups</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Active Groups</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeGroups ?? 0}</div>
+            <p className="text-2xl font-bold">{stats?.activeGroups || 0}</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Study Streak</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Study Streak</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.streak ?? 0} days</div>
+            <p className="text-2xl font-bold">{stats?.streak || 0} days</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="mt-6">
         <Card>
           <CardHeader>
             <CardTitle>Study Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <Progress value={progress?.mastery ?? 0} className="mb-2" />
-            <div className="text-sm text-muted-foreground">
-              {progress?.totalStudied ?? 0} of {progress?.totalWords ?? 0} words studied
+            <div className="space-y-2">
+              <div>
+                <p className="text-sm text-gray-500">Words Studied</p>
+                <p className="text-lg font-bold">
+                  {progress?.totalStudied || 0} / {progress?.totalWords || 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Mastery Level</p>
+                <p className="text-lg font-bold">{progress?.mastery || 0}%</p>
+              </div>
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Last Study Session</CardTitle>

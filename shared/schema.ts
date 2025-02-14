@@ -1,83 +1,74 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const words = pgTable("words", {
-  id: serial("id").primaryKey(),
-  dariWord: text("dari_word").notNull(),
-  englishTranslation: text("english_translation").notNull(),
-  pronunciation: text("pronunciation").notNull(),
-  exampleSentence: text("example_sentence").notNull()
+// Database interfaces
+export interface Word {
+  id: number;
+  dari_word: string;
+  english_translation: string;
+  pronunciation: string;
+  example_sentence: string;
+}
+
+export interface WordGroup {
+  id: number;
+  name: string;
+  word_count?: number;  // Optional because it's only present in list views
+}
+
+export interface WordsToGroups {
+  id: number;
+  word_id: number;
+  group_id: number;
+}
+
+export interface StudySession {
+  id: number;
+  group_id: number | null;
+  created_at: string;
+}
+
+export interface WordReviewItem {
+  id: number;
+  word_id: number | null;
+  study_session_id: number | null;
+  correct: boolean;
+  created_at: string;
+}
+
+// Types for inserting new records
+export type InsertWord = Omit<Word, 'id'>;
+export type InsertWordGroup = Omit<WordGroup, 'id'>;
+export type InsertWordsToGroups = Omit<WordsToGroups, 'id'>;
+export type InsertStudySession = Omit<StudySession, 'id' | 'created_at'>;
+export type InsertWordReview = Omit<WordReviewItem, 'id' | 'created_at'>;
+
+// Zod schemas for validation
+export const insertWordSchema = z.object({
+  dari_word: z.string(),
+  english_translation: z.string(),
+  pronunciation: z.string(),
+  example_sentence: z.string()
 });
 
-export const wordGroups = pgTable("word_groups", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull()
+export const insertWordGroupSchema = z.object({
+  name: z.string()
 });
 
-// Add words_to_groups table for many-to-many relationship
-export const wordsToGroups = pgTable("words_to_groups", {
-  id: serial("id").primaryKey(),
-  wordId: integer("word_id").references(() => words.id).notNull(),
-  groupId: integer("group_id").references(() => wordGroups.id).notNull()
+export const insertWordsToGroupsSchema = z.object({
+  word_id: z.number(),
+  group_id: z.number()
 });
 
-export const studySessions = pgTable("study_sessions", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").references(() => wordGroups.id),
-  createdAt: timestamp("created_at").defaultNow()
+export const insertStudySessionSchema = z.object({
+  group_id: z.union([
+    z.number(),
+    z.string().transform(val => parseInt(val, 10)),
+    z.null()
+  ])
 });
 
-export const studyActivities = pgTable("study_activities", {
-  id: serial("id").primaryKey(),
-  studySessionId: integer("study_session_id").references(() => studySessions.id),
-  groupId: integer("group_id").references(() => wordGroups.id),
-  createdAt: timestamp("created_at").defaultNow()
+export const insertWordReviewSchema = z.object({
+  word_id: z.number().nullable(),
+  study_session_id: z.number().nullable(),
+  correct: z.boolean()
 });
-
-export const wordReviewItems = pgTable("word_review_items", {
-  id: serial("id").primaryKey(),
-  wordId: integer("word_id").references(() => words.id),
-  studySessionId: integer("study_session_id").references(() => studySessions.id),
-  correct: boolean("correct").notNull(),
-  createdAt: timestamp("created_at").defaultNow()
-});
-
-export const insertWordSchema = createInsertSchema(words).pick({
-  dariWord: true,
-  englishTranslation: true,
-  pronunciation: true,
-  exampleSentence: true
-});
-
-export const insertWordGroupSchema = createInsertSchema(wordGroups).pick({
-  name: true
-});
-
-export const insertWordsToGroupsSchema = createInsertSchema(wordsToGroups).pick({
-  wordId: true,
-  groupId: true
-});
-
-export const insertStudySessionSchema = createInsertSchema(studySessions).pick({
-  groupId: true
-});
-
-export const insertWordReviewSchema = createInsertSchema(wordReviewItems).pick({
-  wordId: true,
-  studySessionId: true,
-  correct: true
-});
-
-export type InsertWord = z.infer<typeof insertWordSchema>;
-export type InsertWordGroup = z.infer<typeof insertWordGroupSchema>;
-export type InsertWordsToGroups = z.infer<typeof insertWordsToGroupsSchema>;
-export type InsertStudySession = z.infer<typeof insertStudySessionSchema>;
-export type InsertWordReview = z.infer<typeof insertWordReviewSchema>;
-
-export type Word = typeof words.$inferSelect;
-export type WordGroup = typeof wordGroups.$inferSelect;
-export type WordsToGroups = typeof wordsToGroups.$inferSelect;
-export type StudySession = typeof studySessions.$inferSelect;
-export type StudyActivity = typeof studyActivities.$inferSelect;
-export type WordReviewItem = typeof wordReviewItems.$inferSelect;
