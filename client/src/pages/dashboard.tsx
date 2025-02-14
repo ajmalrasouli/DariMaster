@@ -2,14 +2,9 @@ import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BookOpen,
-  CheckCircle,
-  Clock,
-  Users,
-  ArrowRight
-} from "lucide-react";
+import { Clock, ArrowRight, CheckCircle2, Trophy } from "lucide-react";
 
 interface LastStudySession {
   groupName: string;
@@ -32,117 +27,161 @@ interface QuickStats {
 }
 
 export default function Dashboard() {
-  const { data: lastSession } = useQuery<LastStudySession>({
-    queryKey: ["/api/dashboard/last_study_session"]
+  const { data: lastSession, isLoading: isLoadingSession } = useQuery<LastStudySession>({
+    queryKey: ["dashboard", "last_study_session"],
+    queryFn: async () => {
+      const response = await fetch("/api/dashboard/last_study_session");
+      return response.json();
+    }
   });
 
-  const { data: progress } = useQuery<StudyProgress>({
-    queryKey: ["/api/dashboard/study_progress"]
+  const { data: progress, isLoading: isLoadingProgress } = useQuery<StudyProgress>({
+    queryKey: ["dashboard", "study_progress"],
+    queryFn: async () => {
+      const response = await fetch("/api/dashboard/study_progress");
+      return response.json();
+    }
   });
 
-  const { data: stats } = useQuery<QuickStats>({
-    queryKey: ["/api/dashboard/quick-stats"]
+  const { data: stats, isLoading: isLoadingStats } = useQuery<QuickStats>({
+    queryKey: ["dashboard", "quick-stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/dashboard/quick-stats");
+      return response.json();
+    }
   });
+
+  const isLoading = isLoadingSession || isLoadingProgress || isLoadingStats;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <Link href="/study">
+            <Button>
+              Start Studying
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-24" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded animate-pulse w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <Link href="/study">
-          <Button>Start Studying</Button>
+          <Button>
+            Start Studying
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Last Study Session */}
         <Card>
-          <CardHeader>
-            <CardTitle>Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats?.successRate || 0}%</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Study Sessions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats?.totalSessions || 0}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Groups</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats?.activeGroups || 0}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Study Streak</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats?.streak || 0} days</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Study Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <p className="text-sm text-gray-500">Words Studied</p>
-                <p className="text-lg font-bold">
-                  {progress?.totalStudied || 0} / {progress?.totalWords || 0}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Mastery Level</p>
-                <p className="text-lg font-bold">{progress?.mastery || 0}%</p>
-              </div>
+          <CardHeader className="pb-2">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Last Study Session</CardTitle>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Last Study Session</CardTitle>
           </CardHeader>
           <CardContent>
             {lastSession ? (
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Group:</span>
-                  <span className="font-medium">{lastSession.groupName}</span>
+                <h3 className="font-semibold text-lg">{lastSession.groupName}</h3>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                  <span>{lastSession.correct} correct</span>
+                  <span className="mx-1">•</span>
+                  <span>{lastSession.total - lastSession.correct} wrong</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Score:</span>
-                  <span className="font-medium">
-                    {lastSession.correct}/{lastSession.total} correct
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">When:</span>
-                  <span className="font-medium">
-                    {new Date(lastSession.date).toLocaleDateString()}
-                  </span>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(lastSession.date).toLocaleDateString()}
+                </p>
+                <Link href={`/study/${lastSession.groupName}`} className="text-sm text-blue-500 hover:underline">
+                  View Group →
+                </Link>
               </div>
             ) : (
-              <div className="text-center text-muted-foreground">
-                No study sessions yet
-              </div>
+              <p className="text-muted-foreground">No study sessions yet</p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Study Progress */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Study Progress</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Total Words Studied</span>
+                  <span className="font-medium">
+                    {progress?.totalStudied} / {progress?.totalWords}
+                  </span>
+                </div>
+                <Progress value={(progress?.totalStudied || 0) / (progress?.totalWords || 1) * 100} />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Mastery Progress</span>
+                  <span className="font-medium">{progress?.mastery || 0}%</span>
+                </div>
+                <Progress value={progress?.mastery || 0} className="bg-blue-100" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Quick Stats</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Success Rate</span>
+                <span className="font-medium">{stats?.successRate || 0}%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Study Sessions</span>
+                <span className="font-medium">{stats?.totalSessions || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Active Groups</span>
+                <span className="font-medium">{stats?.activeGroups || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Study Streak</span>
+                <span className="font-medium">{stats?.streak || 0} days</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

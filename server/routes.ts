@@ -205,99 +205,127 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Add new dashboard routes
-  app.get("/api/dashboard/last_study_session", async (_req, res) => {
-    const sessions = await storage.getStudySessions();
-    if (sessions.length === 0) {
-      return res.json(null);
-    }
+  app.get("/api/dashboard/last_study_session", (_req, res) => {
+    try {
+      const lastSession = db.prepare(`
+        SELECT 
+          ss.id,
+          ss.created_at,
+          wg.name as groupName,
+          COUNT(wri.id) as total,
+          SUM(CASE WHEN wri.correct = 1 THEN 1 ELSE 0 END) as correct
+        FROM study_sessions ss
+        LEFT JOIN word_groups wg ON ss.group_id = wg.id
+        LEFT JOIN word_review_items wri ON ss.id = wri.study_session_id
+        GROUP BY ss.id
+        ORDER BY ss.created_at DESC
+        LIMIT 1
+      `).get() as {
+        id: number;
+        created_at: string;
+        groupName: string;
+        total: number;
+        correct: number;
+      } | undefined;
 
-    const lastSession = sessions[sessions.length - 1];
-    const group = await storage.getGroup(lastSession.group_id!);
-    const reviews = await storage.getWordReviews(lastSession.id);
-
-    res.json({
-      groupName: group?.name,
-      date: lastSession.created_at,
-      correct: reviews.filter(r => r.correct).length,
-      total: reviews.length
-    });
-  });
-
-  app.get("/api/dashboard/study_progress", async (_req, res) => {
-    const words = await storage.getWords();
-    const reviews = await Promise.all(
-      words.map(word => storage.getWordStats(word.id))
-    );
-
-    const totalWords = words.length;
-    const totalStudied = reviews.filter(stats =>
-      stats.correct + stats.incorrect > 0
-    ).length;
-
-    const totalReviews = reviews.reduce(
-      (sum, stats) => sum + stats.correct + stats.incorrect,
-      0
-    );
-    const correctReviews = reviews.reduce(
-      (sum, stats) => sum + stats.correct,
-      0
-    );
-
-    const mastery = totalReviews > 0
-      ? Math.round((correctReviews / totalReviews) * 100)
-      : 0;
-
-    res.json({
-      totalWords,
-      totalStudied,
-      mastery
-    });
-  });
-
-  app.get("/api/dashboard/quick-stats", async (_req, res) => {
-    const sessions = await storage.getStudySessions();
-    const groups = await storage.getGroups();
-
-    // Calculate success rate across all reviews
-    let totalCorrect = 0;
-    let totalReviews = 0;
-
-    for (const session of sessions) {
-      const reviews = await storage.getWordReviews(session.id);
-      totalCorrect += reviews.filter(r => r.correct).length;
-      totalReviews += reviews.length;
-    }
-
-    const successRate = totalReviews > 0
-      ? Math.round((totalCorrect / totalReviews) * 100)
-      : 0;
-
-    // Calculate study streak (consecutive days with sessions)
-    const sessionDates = sessions
-      .map(s => new Date(s.created_at!).toDateString())
-      .sort()
-      .filter((date, i, arr) => arr.indexOf(date) === i);
-
-    let streak = 0;
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-
-    if (sessionDates.includes(today) || sessionDates.includes(yesterday)) {
-      streak = 1;
-      let checkDate = new Date(Date.now() - 86400000);
-
-      while (sessionDates.includes(checkDate.toDateString())) {
-        streak++;
-        checkDate = new Date(checkDate.getTime() - 86400000);
+      if (!lastSession) {
+        return res.json(null);
       }
-    }
 
-    res.json({
-      successRate,
-      totalSessions: sessions.length,
-      activeGroups: groups.length,
-      streak
-    });
+      res.json({
+        groupName: lastSession.groupName,
+        date: lastSession.created_at,
+        correct: lastSession.correct,
+        total: lastSession.total
+      });
+    } catch (error) {
+      console.error('Error fetching last study session:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/dashboard/study_progress", (_req, res) => {
+    try {
+      const totalWords = db.prepare('SELECT COUNT(*) as count FROM words').get() as { count: number };
+      
+      const studiedWords = db.prepare(`
+        SELECT COUNT(DISTINCT word_id) as count 
+        FROM word_review_items
+      `).get() as { count: number };
+
+      const reviews = db.prepare(`
+        SELECT correct 
+        FROM word_review_items
+      `).all() as { correct: number }[];
+
+      const totalReviews = reviews.length;
+      const correctReviews = reviews.filter(r => r.correct).length;
+      
+      const mastery = totalReviews > 0
+        ? Math.round((correctReviews / totalReviews) * 100)
+        : 0;
+
+      res.json({
+        totalWords: totalWords.count,
+        totalStudied: studiedWords.count,
+        mastery
+      });
+    } catch (error) {
+      console.error('Error fetching study progress:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/dashboard/quick-stats", (_req, res) => {
+    try {
+      const studySessions = db.prepare('SELECT * FROM study_sessions').all();
+      const groups = db.prepare('SELECT * FROM word_groups').all();
+      
+      // Calculate success rate
+      const reviews = db.prepare(`
+        SELECT correct 
+        FROM word_review_items
+        WHERE created_at >= date('now', '-30 days')
+      `).all() as { correct: number }[];
+
+      const totalReviews = reviews.length;
+      const correctReviews = reviews.filter(r => r.correct).length;
+      const successRate = totalReviews > 0 
+        ? Math.round((correctReviews / totalReviews) * 100)
+        : 0;
+
+      // Calculate study streak
+      const sessionDates = db.prepare(`
+        SELECT DISTINCT date(created_at) as study_date
+        FROM study_sessions
+        WHERE created_at >= date('now', '-30 days')
+        ORDER BY study_date DESC
+      `).all() as { study_date: string }[];
+
+      let streak = 0;
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+      if (sessionDates.some(d => d.study_date === today || d.study_date === yesterday)) {
+        streak = 1;
+        let checkDate = new Date(Date.now() - 86400000);
+        
+        while (sessionDates.some(d => d.study_date === checkDate.toISOString().split('T')[0])) {
+          streak++;
+          checkDate = new Date(checkDate.getTime() - 86400000);
+        }
+      }
+
+      res.json({
+        successRate,
+        totalSessions: studySessions.length,
+        activeGroups: groups.length,
+        streak
+      });
+    } catch (error) {
+      console.error('Error fetching quick stats:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // Reset
