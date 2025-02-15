@@ -10,7 +10,8 @@
     "check": "tsc",
     "db:setup": "tsx scripts/setup-db.ts",
     "db:check": "tsx scripts/check-db.ts",
-    "db:seed": "tsx server/seed.ts"
+    "db:seed": "tsx server/seed.ts",
+    "seed": "tsx scripts/seed-db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

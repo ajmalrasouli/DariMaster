@@ -1,57 +1,45 @@
-import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
-import {
-  LayoutDashboard,
-  Layers,
-  BookOpen,
-  Clock,
-  Settings
+import { Link, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
+import { 
+  LayoutDashboard, 
+  BookOpen, 
+  Layers, 
+  History,
+  Settings,
+  GraduationCap
 } from "lucide-react";
 
 export function Sidebar() {
+  const [location] = useLocation();
+
+  const menuItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/study", label: "Study Activities", icon: GraduationCap },
+    { href: "/vocabulary", label: "Words", icon: BookOpen },
+    { href: "/groups", label: "Word Groups", icon: Layers },
+    { href: "/sessions", label: "Sessions", icon: History },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
+
   return (
-    <nav className="flex flex-col gap-2 p-4 border-r min-h-screen w-64 bg-white">
-      <Button variant="ghost" className="justify-start" asChild>
-        <Link href="/">
-          <LayoutDashboard className="mr-2 h-4 w-4" />
-          Dashboard
-        </Link>
-      </Button>
+    <div className="sidebar w-64 min-h-screen p-4 space-y-6">
+      <div className="flex items-center space-x-2 px-2 mb-8">
+        <span className="text-2xl font-display font-bold">DariMaster</span>
+      </div>
 
-      <Button variant="ghost" className="justify-start" asChild>
-        <Link href="/study">
-          <Layers className="mr-2 h-4 w-4" />
-          Study Activities
-        </Link>
-      </Button>
-
-      <Button variant="ghost" className="justify-start" asChild>
-        <Link href="/vocabulary">
-          <BookOpen className="mr-2 h-4 w-4" />
-          Words
-        </Link>
-      </Button>
-
-      <Button variant="ghost" className="justify-start" asChild>
-        <Link href="/groups">
-          <Layers className="mr-2 h-4 w-4" />
-          Word Groups
-        </Link>
-      </Button>
-
-      <Button variant="ghost" className="justify-start" asChild>
-        <Link href="/sessions">
-          <Clock className="mr-2 h-4 w-4" />
-          Sessions
-        </Link>
-      </Button>
-
-      <Button variant="ghost" className="justify-start" asChild>
-        <Link href="/settings">
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
-        </Link>
-      </Button>
-    </nav>
+      <nav className="space-y-2">
+        {menuItems.map(({ href, label, icon: Icon }) => (
+          <Link key={href} href={href}>
+            <a className={cn(
+              "sidebar-item",
+              location === href && "active"
+            )}>
+              <Icon className="w-5 h-5 mr-3" />
+              <span>{label}</span>
+            </a>
+          </Link>
+        ))}
+      </nav>
+    </div>
   );
 }
