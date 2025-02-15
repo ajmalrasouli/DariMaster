@@ -1,110 +1,55 @@
-# DariMaster
+# DariMaster Language Learning App
 
-A modern web application for learning Dari language through interactive study activities.
+A modern web application for learning Dari language through interactive study activities. Part of the Free GenAI Bootcamp 2025.
 
 ## Features
 
 ### Study Activities
-- **Flashcards**: Traditional flashcard-based learning with Dari words, translations, and example sentences
-- **Matching Game**: Interactive card matching game to pair Dari words with their English translations
-- **Progress Tracking**: Detailed study history with success rates and word counts
+- **Flashcards**: Interactive flashcard-based learning with spaced repetition
+  - Dari words with English translations
+  - Pronunciation guides
+  - Example sentences
+  - Progress tracking
 
-### Word Management
-- Create and manage word groups
-- Add words with Dari text, English translations, pronunciations, and example sentences
-- Organize words into thematic groups
+- **Matching Game**: Memory-style card matching game
+  - Match Dari words with English translations
+  - Score tracking
+  - Interactive feedback
 
-### Study Progress
-- Track study sessions and performance
-- View success rates per session
-- Monitor learning progress over time
-- Study streak tracking
+### Word Groups
+- **Organized Learning**: Words grouped by categories
+  - Numbers (1-20)
+  - Family Members
+  - Basic Phrases
+  - Common Phrases
 
-### Dashboard
-- Quick overview of study progress
-- Recent study sessions
+### Progress Tracking
+- Study session history
 - Success rate statistics
-- Active word groups
-- Current study streak
+- Word mastery tracking
+- Performance analytics
 
 ## Technical Stack
 
 ### Frontend
-- React with TypeScript
-- Wouter for routing
-- TanStack Query for data fetching
+- React 18 with TypeScript
+- TanStack Query for data management
 - Tailwind CSS for styling
-- Shadcn/ui for UI components
+- Shadcn/ui components
+- Wouter for routing
 
 ### Backend
 - Node.js with Express
-- SQLite with Better-SQLite3
-- Drizzle ORM for database operations
+- SQLite database
+- Better-SQLite3 for database operations
 - Zod for schema validation
-
-## Database Schema
-
-```sql
--- Words table
-CREATE TABLE words (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    dari_word TEXT NOT NULL,
-    english_translation TEXT NOT NULL,
-    pronunciation TEXT NOT NULL,
-    example_sentence TEXT NOT NULL
-);
-
--- Word groups
-CREATE TABLE word_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
-);
-
--- Words to groups mapping
-CREATE TABLE words_to_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    word_id INTEGER NOT NULL,
-    group_id INTEGER NOT NULL,
-    FOREIGN KEY (word_id) REFERENCES words(id),
-    FOREIGN KEY (group_id) REFERENCES word_groups(id)
-);
-
--- Study sessions
-CREATE TABLE study_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES word_groups(id)
-);
-
--- Word review items
-CREATE TABLE word_review_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    word_id INTEGER,
-    study_session_id INTEGER,
-    correct BOOLEAN NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (word_id) REFERENCES words(id),
-    FOREIGN KEY (study_session_id) REFERENCES study_sessions(id)
-);
-
--- Study activities
-CREATE TABLE study_activities (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    description TEXT,
-    thumbnail_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
 
 ## Getting Started
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/darimaster.git
-cd darimaster
+git clone https://github.com/ajmalrasouli/free-genai-bootcamp-2025.git
+cd free-genai-bootcamp-2025/projects/darimasterlan
 ```
 
 2. Install dependencies:
@@ -115,6 +60,7 @@ npm install
 3. Set up the database:
 ```bash
 npm run setup-db
+npm run seed
 ```
 
 4. Start the development server:
@@ -122,30 +68,29 @@ npm run setup-db
 npm run dev
 ```
 
-## Development
+## Project Structure
+```
+darimasterlan/
+├── client/                 # Frontend React application
+│   ├── src/
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/        # Page components
+│   │   ├── lib/          # Utilities and helpers
+│   │   └── App.tsx       # Main application component
+├── server/                # Backend Express server
+│   ├── routes.ts         # API routes
+│   ├── db.ts            # Database configuration
+│   └── storage.ts       # Data access layer
+├── shared/               # Shared types and schemas
+└── scripts/             # Database and utility scripts
+```
 
-### Available Scripts
+## Available Scripts
 - `npm run dev`: Start development server
 - `npm run build`: Build for production
 - `npm run setup-db`: Initialize database
 - `npm run seed`: Seed database with sample data
 - `npm run check-db`: Check database integrity
-
-### Project Structure
-```
-darimaster/
-├── client/             # Frontend React application
-│   ├── src/
-│   │   ├── components/ # Reusable components
-│   │   ├── pages/      # Page components
-│   │   └── App.tsx     # Main application component
-├── server/             # Backend Express server
-│   ├── routes.ts       # API routes
-│   ├── db.ts          # Database configuration
-│   └── storage.ts     # Data access layer
-├── shared/            # Shared types and schemas
-└── scripts/          # Database and utility scripts
-```
 
 ## Contributing
 
