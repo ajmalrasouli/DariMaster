@@ -48,6 +48,14 @@ db.exec(`
         FOREIGN KEY (word_id) REFERENCES words(id),
         FOREIGN KEY (study_session_id) REFERENCES study_sessions(id)
     );
+
+    CREATE TABLE IF NOT EXISTS study_activities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        thumbnail_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
 `);
 
 // Export common database operations

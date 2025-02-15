@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ export function StudySessionPage() {
   const groupId = params?.groupId ? parseInt(params.groupId) : undefined;
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [sessionId, setSessionId] = useState<number | null>(null);
 
   const { data: words = [] } = useQuery<Word[]>({
     queryKey: ["group-words", groupId],
@@ -21,7 +22,39 @@ export function StudySessionPage() {
 
   const currentWord = words[currentWordIndex];
 
-  const nextWord = () => {
+  useEffect(() => {
+    if (groupId) {
+      fetch('/api/study_sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group_id: groupId })
+      })
+      .then(res => res.json())
+      .then(data => setSessionId(data.id))
+      .catch(error => console.error('Error creating study session:', error));
+    }
+  }, [groupId]);
+
+  const recordReview = async (correct: boolean) => {
+    if (sessionId && currentWord) {
+      try {
+        await fetch('/api/word_reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            word_id: currentWord.id,
+            study_session_id: sessionId,
+            correct
+          })
+        });
+      } catch (error) {
+        console.error('Error recording review:', error);
+      }
+    }
+  };
+
+  const nextWord = async (correct: boolean) => {
+    await recordReview(correct);
     setShowAnswer(false);
     setCurrentWordIndex((prev) => (prev + 1) % words.length);
   };
@@ -51,7 +84,20 @@ export function StudySessionPage() {
                   <p className="text-lg text-gray-600 mb-6" dir="rtl">
                     {currentWord.example_sentence}
                   </p>
-                  <Button onClick={nextWord}>Next Word</Button>
+                  <div className="space-x-4">
+                    <Button 
+                      onClick={() => nextWord(true)}
+                      className="bg-green-500 hover:bg-green-600"
+                    >
+                      Correct
+                    </Button>
+                    <Button 
+                      onClick={() => nextWord(false)}
+                      className="bg-red-500 hover:bg-red-600"
+                    >
+                      Incorrect
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <Button onClick={() => setShowAnswer(true)}>Show Answer</Button>

@@ -130,9 +130,27 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Study Sessions
-  app.get("/api/study_sessions", async (_req, res) => {
-    const sessions = await storage.getStudySessions();
-    res.json(sessions);
+  app.get("/api/study_sessions", (_req, res) => {
+    try {
+      const sessions = db.prepare(`
+        SELECT 
+          ss.id,
+          ss.created_at,
+          wg.name as group_name,
+          COUNT(DISTINCT wri.word_id) as words_studied,
+          ROUND(AVG(CASE WHEN wri.correct = 1 THEN 100.0 ELSE 0.0 END)) as success_rate
+        FROM study_sessions ss
+        LEFT JOIN word_groups wg ON ss.group_id = wg.id
+        LEFT JOIN word_review_items wri ON ss.id = wri.study_session_id
+        GROUP BY ss.id, ss.created_at, wg.name
+        ORDER BY ss.created_at DESC
+      `).all();
+
+      res.json(sessions);
+    } catch (error) {
+      console.error('Error fetching study sessions:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.get("/api/study_sessions/:id", async (req, res) => {
@@ -141,26 +159,24 @@ export function registerRoutes(app: Express): Server {
     res.json(session);
   });
 
-  app.post("/api/study_sessions", async (req, res) => {
-    console.log('Received study session request:', req.body);
-    
-    // Transform groupId to group_id
-    const requestData = {
-      group_id: req.body.groupId ? Number(req.body.groupId) : null
-    };
-    
-    const parsed = insertStudySessionSchema.safeParse(requestData);
-    if (!parsed.success) {
-      console.log('Validation error:', parsed.error);
-      return res.status(400).json(parsed.error);
-    }
-    
+  app.post("/api/study_sessions", (req, res) => {
     try {
-      const session = await storage.createStudySession(parsed.data);
-      res.json(session);
+      const { group_id } = req.body;
+      const result = db.prepare(`
+        INSERT INTO study_sessions (group_id, created_at)
+        VALUES (?, datetime('now'))
+      `).run(group_id);
+
+      const session = {
+        id: result.lastInsertRowid,
+        group_id,
+        created_at: new Date().toISOString()
+      };
+
+      res.status(201).json(session);
     } catch (error) {
       console.error('Error creating study session:', error);
-      res.status(500).json({ message: 'Failed to create study session' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -187,15 +203,25 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Word Reviews
-  app.post("/api/study_sessions/:id/words/:wordId/review", async (req, res) => {
-    const parsed = insertWordReviewSchema.safeParse({
-      ...req.body,
-      word_id: parseInt(req.params.wordId),
-      study_session_id: parseInt(req.params.id)
-    });
-    if (!parsed.success) return res.status(400).json(parsed.error);
-    const review = await storage.createWordReview(parsed.data);
-    res.json(review);
+  app.post("/api/word_reviews", (req, res) => {
+    try {
+      const { word_id, study_session_id, correct } = req.body;
+      const result = db.prepare(`
+        INSERT INTO word_review_items (word_id, study_session_id, correct, created_at)
+        VALUES (?, ?, ?, datetime('now'))
+      `).run(word_id, study_session_id, correct ? 1 : 0);
+
+      res.status(201).json({
+        id: result.lastInsertRowid,
+        word_id,
+        study_session_id,
+        correct,
+        created_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error creating word review:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // Stats
