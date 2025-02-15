@@ -1,105 +1,155 @@
 # DariMaster
 
-A modern web application for learning Dari vocabulary through interactive study sessions and organized word groups.
-
-![DariMaster Screenshot](screenshot.png)
+A modern web application for learning Dari language through interactive study activities.
 
 ## Features
 
-- 📚 Organized vocabulary groups
-  - Basic Greetings
-  - Family Members
-  - Common Verbs
-  - Numbers
-- 🎯 Interactive flashcard-style learning
-- 📊 Progress tracking and statistics
-- 🔄 Spaced repetition system
-- 📱 Responsive design
+### Study Activities
+- **Flashcards**: Traditional flashcard-based learning with Dari words, translations, and example sentences
+- **Matching Game**: Interactive card matching game to pair Dari words with their English translations
+- **Progress Tracking**: Detailed study history with success rates and word counts
 
-## Tech Stack
+### Word Management
+- Create and manage word groups
+- Add words with Dari text, English translations, pronunciations, and example sentences
+- Organize words into thematic groups
+
+### Study Progress
+- Track study sessions and performance
+- View success rates per session
+- Monitor learning progress over time
+- Study streak tracking
+
+### Dashboard
+- Quick overview of study progress
+- Recent study sessions
+- Success rate statistics
+- Active word groups
+- Current study streak
+
+## Technical Stack
 
 ### Frontend
-- React 18 with TypeScript
+- React with TypeScript
 - Wouter for routing
 - TanStack Query for data fetching
-- Tailwind CSS + Shadcn UI
-- Vite for development and building
+- Tailwind CSS for styling
+- Shadcn/ui for UI components
 
 ### Backend
 - Node.js with Express
-- SQLite with better-sqlite3
-- TypeScript for type safety
+- SQLite with Better-SQLite3
+- Drizzle ORM for database operations
+- Zod for schema validation
+
+## Database Schema
+
+```sql
+-- Words table
+CREATE TABLE words (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dari_word TEXT NOT NULL,
+    english_translation TEXT NOT NULL,
+    pronunciation TEXT NOT NULL,
+    example_sentence TEXT NOT NULL
+);
+
+-- Word groups
+CREATE TABLE word_groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+);
+
+-- Words to groups mapping
+CREATE TABLE words_to_groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    word_id INTEGER NOT NULL,
+    group_id INTEGER NOT NULL,
+    FOREIGN KEY (word_id) REFERENCES words(id),
+    FOREIGN KEY (group_id) REFERENCES word_groups(id)
+);
+
+-- Study sessions
+CREATE TABLE study_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES word_groups(id)
+);
+
+-- Word review items
+CREATE TABLE word_review_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    word_id INTEGER,
+    study_session_id INTEGER,
+    correct BOOLEAN NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (word_id) REFERENCES words(id),
+    FOREIGN KEY (study_session_id) REFERENCES study_sessions(id)
+);
+
+-- Study activities
+CREATE TABLE study_activities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT,
+    thumbnail_url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
 
 ## Getting Started
 
-### Prerequisites
-- Node.js (v18+)
-- npm (v7+)
-
-### Installation
-
-1. Clone the repository
+1. Clone the repository:
 ```bash
-git clone https://github.com/ajmalrasouli/darimasterlan.git
-cd darimasterlan
+git clone https://github.com/yourusername/darimaster.git
+cd darimaster
 ```
 
-2. Install dependencies
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Set up the database
+3. Set up the database:
 ```bash
-npm run db:setup
+npm run setup-db
 ```
 
-4. Start the development server
+4. Start the development server:
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:5173` in your browser.
+## Development
 
-## Project Structure
+### Available Scripts
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm run setup-db`: Initialize database
+- `npm run seed`: Seed database with sample data
+- `npm run check-db`: Check database integrity
+
+### Project Structure
 ```
-darimasterlan/
-├── client/                 # Frontend React application
-│   └── src/
-│       ├── components/     # Reusable UI components
-│       ├── pages/         # Page components
-│       └── lib/           # Utilities and hooks
-├── server/                # Backend Express server
-│   ├── db.ts             # Database configuration
-│   └── routes.ts         # API endpoints
-├── scripts/              # Database and utility scripts
-└── shared/               # Shared TypeScript types
+darimaster/
+├── client/             # Frontend React application
+│   ├── src/
+│   │   ├── components/ # Reusable components
+│   │   ├── pages/      # Page components
+│   │   └── App.tsx     # Main application component
+├── server/             # Backend Express server
+│   ├── routes.ts       # API routes
+│   ├── db.ts          # Database configuration
+│   └── storage.ts     # Data access layer
+├── shared/            # Shared types and schemas
+└── scripts/          # Database and utility scripts
 ```
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run db:setup` - Initialize database
-- `npm run db:check` - Verify database content
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Check TypeScript types
-
-## Database Schema
-
-- `words` - Vocabulary words with translations
-- `word_groups` - Word categories
-- `words_to_groups` - Word-group relationships
-- `study_sessions` - Learning sessions
-- `word_review_items` - Review history
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 

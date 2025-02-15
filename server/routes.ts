@@ -138,7 +138,10 @@ export function registerRoutes(app: Express): Server {
           ss.created_at,
           wg.name as group_name,
           COUNT(DISTINCT wri.word_id) as words_studied,
-          ROUND(AVG(CASE WHEN wri.correct = 1 THEN 100.0 ELSE 0.0 END)) as success_rate
+          ROUND(
+            (SUM(CASE WHEN wri.correct = 1 THEN 1 ELSE 0 END) * 100.0) / 
+            COUNT(wri.id)
+          ) as success_rate
         FROM study_sessions ss
         LEFT JOIN word_groups wg ON ss.group_id = wg.id
         LEFT JOIN word_review_items wri ON ss.id = wri.study_session_id
@@ -164,7 +167,7 @@ export function registerRoutes(app: Express): Server {
       const { group_id } = req.body;
       const result = db.prepare(`
         INSERT INTO study_sessions (group_id, created_at)
-        VALUES (?, datetime('now'))
+        VALUES (?, datetime('now', 'localtime'))
       `).run(group_id);
 
       const session = {
@@ -208,7 +211,7 @@ export function registerRoutes(app: Express): Server {
       const { word_id, study_session_id, correct } = req.body;
       const result = db.prepare(`
         INSERT INTO word_review_items (word_id, study_session_id, correct, created_at)
-        VALUES (?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, datetime('now', 'localtime'))
       `).run(word_id, study_session_id, correct ? 1 : 0);
 
       res.status(201).json({

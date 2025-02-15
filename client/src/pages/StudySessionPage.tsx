@@ -35,7 +35,7 @@ export function StudySessionPage() {
     }
   }, [groupId]);
 
-  const recordReview = async (correct: boolean) => {
+  const handleAnswer = async (correct: boolean) => {
     if (sessionId && currentWord) {
       try {
         await fetch('/api/word_reviews', {
@@ -47,16 +47,13 @@ export function StudySessionPage() {
             correct
           })
         });
+        
+        setShowAnswer(false);
+        setCurrentWordIndex((prev) => (prev + 1) % words.length);
       } catch (error) {
         console.error('Error recording review:', error);
       }
     }
-  };
-
-  const nextWord = async (correct: boolean) => {
-    await recordReview(correct);
-    setShowAnswer(false);
-    setCurrentWordIndex((prev) => (prev + 1) % words.length);
   };
 
   if (!currentWord) {
@@ -86,13 +83,13 @@ export function StudySessionPage() {
                   </p>
                   <div className="space-x-4">
                     <Button 
-                      onClick={() => nextWord(true)}
+                      onClick={() => handleAnswer(true)}
                       className="bg-green-500 hover:bg-green-600"
                     >
                       Correct
                     </Button>
                     <Button 
-                      onClick={() => nextWord(false)}
+                      onClick={() => handleAnswer(false)}
                       className="bg-red-500 hover:bg-red-600"
                     >
                       Incorrect

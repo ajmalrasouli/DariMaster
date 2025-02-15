@@ -12,6 +12,7 @@ import { StudySessionPage } from "@/pages/StudySessionPage";
 import { StudyHistoryPage } from "@/pages/StudyHistoryPage";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import { MatchingGamePage } from "@/pages/activities/MatchingGamePage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ function Router() {
           <Route path="/study/:groupId" component={StudySessionPage} />
           <Route path="/sessions" component={StudyHistoryPage} />
           <Route path="/settings" component={Settings} />
+          <Route path="/activities/matching/:groupId" component={MatchingGamePage} />
           <Route component={NotFound} />
         </Switch>
       </main>

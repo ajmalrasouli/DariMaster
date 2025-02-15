@@ -9,7 +9,10 @@ export const db = new Database('sqlite.db', {
 // Enable foreign keys
 db.exec('PRAGMA foreign_keys = ON');
 
-// Create tables if they don't exist
+// First drop the existing study_activities table if it exists
+db.exec(`DROP TABLE IF EXISTS study_activities;`);
+
+// Then create tables if they don't exist
 db.exec(`
     CREATE TABLE IF NOT EXISTS words (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,10 +55,17 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS study_activities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        type TEXT NOT NULL,
         description TEXT,
         thumbnail_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Add default activities
+    INSERT OR IGNORE INTO study_activities (name, type, description)
+    VALUES 
+        ('Flashcards', 'flashcards', 'Study words with interactive flashcards'),
+        ('Matching Game', 'matching', 'Match Dari words with their English translations');
 `);
 
 // Export common database operations
