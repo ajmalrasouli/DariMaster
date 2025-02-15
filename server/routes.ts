@@ -376,6 +376,39 @@ export function registerRoutes(app: Express): Server {
     res.json(groupSessions);
   });
 
+  app.post('/api/study-sessions/review', async (req, res) => {
+    try {
+      const { sessionId, wordId, correct } = req.body;
+
+      // Strict validation
+      if (!sessionId || !wordId || typeof correct !== 'boolean') {
+        console.error('Invalid review data:', { sessionId, wordId, correct });
+        return res.status(400).json({ 
+          error: 'Invalid review data',
+          details: {
+            sessionId: typeof sessionId,
+            wordId: typeof wordId,
+            correct: typeof correct
+          }
+        });
+      }
+
+      // Insert the review with explicit boolean
+      db.prepare(`
+        INSERT INTO word_review_items (
+          word_id,
+          study_session_id,
+          correct
+        ) VALUES (?, ?, ?)
+      `).run(wordId, sessionId, correct ? 1 : 0); // SQLite uses 1/0 for booleans
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error recording review:', error);
+      res.status(500).json({ error: 'Failed to record review' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

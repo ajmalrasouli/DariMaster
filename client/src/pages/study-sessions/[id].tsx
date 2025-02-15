@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { apiRequest } from "@/lib/queryClient";
 import type { StudySession, Word, WordReviewItem } from "@shared/schema";
+import { Flashcards } from "@/components/activities/Flashcards";
 
 interface WordWithReview extends Word {
   review: WordReviewItem | null;
@@ -49,6 +50,30 @@ export default function StudySessionShow() {
       });
     },
   });
+
+  const handleCardReview = async (wordId: number, correct: boolean) => {
+    try {
+      const response = await fetch('/api/study-sessions/review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: Number(id),
+          wordId,
+          correct: Boolean(correct),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record review');
+      }
+
+      console.log('Review recorded:', { wordId, correct });
+    } catch (error) {
+      console.error('Error recording review:', error);
+    }
+  };
 
   if (isLoadingSession) {
     return (
@@ -155,6 +180,18 @@ export default function StudySessionShow() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Flashcards</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Flashcards
+            words={wordsWithReviews || []}
+            onCardReview={handleCardReview}
+          />
         </CardContent>
       </Card>
     </div>
